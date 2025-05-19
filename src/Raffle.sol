@@ -57,19 +57,17 @@ contract Raffle is VRFConsumerBaseV2Plus {
             revert Raffle__NotEnoughEntranceFee();
         }
         if (s_RaffleState != RaffleState.OPEN) {
-            revert Raffle__NotOpen(
-                address(this).balance,
-                s_players.length,
-                uint256(s_RaffleState)
-            );
+            revert Raffle__NotOpen(address(this).balance, s_players.length, uint256(s_RaffleState));
         }
         s_players.push(payable(msg.sender));
         emit RaffleEnterd(msg.sender);
     }
 
-    function checkUpkeep(
-        bytes memory /* checkData */
-    ) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
+    function checkUpkeep(bytes memory /* checkData */ )
+        public
+        view
+        returns (bool upkeepNeeded, bytes memory /* performData */ )
+    {
         bool isOpen = (RaffleState.OPEN == s_RaffleState);
         bool timePassed = ((block.timestamp - s_LastTimeStamp) > i_interval);
         bool hasPlayers = (s_players.length > 0);
@@ -83,13 +81,9 @@ contract Raffle is VRFConsumerBaseV2Plus {
         // if ((block.timestamp - s_startingTime) < i_interval) {
         //     revert();
         // }
-        (bool upkeepNeeded, ) = checkUpkeep("");
+        (bool upkeepNeeded,) = checkUpkeep("");
         if (!upkeepNeeded) {
-            revert Raffle__NotOpen(
-                address(this).balance,
-                s_players.length,
-                uint256(s_RaffleState)
-            );
+            revert Raffle__NotOpen(address(this).balance, s_players.length, uint256(s_RaffleState));
         }
         s_RaffleState = RaffleState.CALCULATING;
         uint256 requestId = s_vrfCoordinator.requestRandomWords(
@@ -107,17 +101,14 @@ contract Raffle is VRFConsumerBaseV2Plus {
         );
     }
 
-    function fulfillRandomWords(
-        uint256 requestId,
-        uint256[] calldata randomWords
-    ) internal override {
+    function fulfillRandomWords(uint256 requestId, uint256[] calldata randomWords) internal override {
         uint256 winnerIndex = randomWords[0] % s_players.length;
         address winner = s_players[winnerIndex];
         s_RaffleState = RaffleState.OPEN;
         s_players = new address payable[](0);
         s_LastTimeStamp = block.timestamp;
         emit WinnerPicked(winner);
-        (bool sucesss, ) = winner.call{value: address(this).balance}("");
+        (bool sucesss,) = winner.call{value: address(this).balance}("");
         if (!sucesss) {
             revert Transfer_Failed();
         }
